@@ -15,8 +15,29 @@
     <main>
       <section id="activities-container">
         <h3>Available Activities</h3>
+        <div id="filters" class="filters">
+          <div class="filter-group">
+            <label for="category-filter">Category:</label>
+            <select id="category-filter">
+              <option value="">All</option>
+              <option value="Sports">Sports</option>
+              <option value="Arts">Arts</option>
+              <option value="STEM">STEM</option>
+              <option value="Academic">Academic</option>
+              <option value="Games">Games</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="age-filter">Age Group:</label>
+            <select id="age-filter">
+              <option value="">All</option>
+              <option value="Middle School">Middle School</option>
+              <option value="High School">High School</option>
+            </select>
+          </div>
+          <button type="button" id="clear-filters" class="secondary-btn">Clear Filters</button>
+        </div>
         <div id="activities-list">
-          <!-- Activities will be loaded here -->
           <p>Loading activities...</p>
         </div>
       </section>
@@ -32,7 +53,6 @@
             <label for="activity">Select Activity:</label>
             <select id="activity" required>
               <option value="">-- Select an activity --</option>
-              <!-- Activity options will be loaded here -->
             </select>
           </div>
           <button type="submit">Sign Up</button>
