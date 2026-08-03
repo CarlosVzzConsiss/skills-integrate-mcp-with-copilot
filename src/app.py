@@ -77,6 +77,59 @@ activities = {
     }
 }
 
+venues = {}
+
+
+def submit_activity(payload: dict):
+    """Create a new activity and track its venue in memory."""
+    if not payload:
+        raise ValueError("Submission payload is required")
+
+    activity_name = str(payload.get("name", "")).strip()
+    venue_name = str(payload.get("venue_name", "")).strip()
+    if not activity_name or not venue_name:
+        raise ValueError("Activity name and venue name are required")
+
+    venue_address = str(payload.get("venue_address", "Address to be confirmed")).strip() or "Address to be confirmed"
+    age_range = str(payload.get("age_range", "")).strip() or "All grades"
+    description = str(payload.get("description", "")).strip()
+    schedule = str(payload.get("schedule", "")).strip()
+
+    if activity_name in activities:
+        raise ValueError(f"Activity '{activity_name}' already exists")
+
+    activity = {
+        "description": description,
+        "schedule": schedule,
+        "max_participants": int(payload.get("max_participants", 0) or 0),
+        "participants": [],
+        "age_range": age_range,
+        "venue": {
+            "name": venue_name,
+            "address": venue_address,
+        },
+    }
+    activities[activity_name] = activity
+
+    venue_record = venues.setdefault(
+        venue_name,
+        {"name": venue_name, "address": venue_address, "activities": []},
+    )
+    if venue_record["address"] == "Address to be confirmed":
+        venue_record["address"] = venue_address
+    if activity_name not in venue_record["activities"]:
+        venue_record["activities"].append(activity_name)
+
+    return {
+        "name": activity_name,
+        "description": description,
+        "schedule": schedule,
+        "max_participants": activity["max_participants"],
+        "participants": activity["participants"],
+        "age_range": age_range,
+        "venue": activity["venue"],
+    }
+
 
 @app.get("/")
 def root():
@@ -86,6 +139,14 @@ def root():
 @app.get("/activities")
 def get_activities():
     return activities
+
+
+@app.post("/activities")
+def create_activity(payload: dict):
+    try:
+        return submit_activity(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/activities/{activity_name}/signup")
