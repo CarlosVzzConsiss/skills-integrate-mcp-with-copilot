@@ -2,26 +2,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
+  const submissionForm = document.getElementById("submission-form");
   const messageDiv = document.getElementById("message");
+  const submissionMessageDiv = document.getElementById("submission-message");
 
-  // Function to fetch activities from API
   async function fetchActivities() {
     try {
       const response = await fetch("/activities");
       const activities = await response.json();
 
-      // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
-      // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
 
-        const spotsLeft =
-          details.max_participants - details.participants.length;
+        const spotsLeft = details.max_participants - details.participants.length;
 
-        // Create participants HTML with delete icons instead of bullet points
         const participantsHTML =
           details.participants.length > 0
             ? `<div class="participants-section">
@@ -37,10 +35,15 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`
             : `<p><em>No participants yet</em></p>`;
 
+        const venueInfo = details.venue
+          ? `<p><strong>Venue:</strong> ${details.venue.name} (${details.venue.address})</p>`
+          : "";
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
+          ${venueInfo}
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <div class="participants-container">
             ${participantsHTML}
@@ -49,14 +52,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activitiesList.appendChild(activityCard);
 
-        // Add option to select dropdown
         const option = document.createElement("option");
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
       });
 
-      // Add event listeners to delete buttons
       document.querySelectorAll(".delete-btn").forEach((button) => {
         button.addEventListener("click", handleUnregister);
       });
@@ -67,7 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Handle unregister functionality
   async function handleUnregister(event) {
     const button = event.target;
     const activity = button.getAttribute("data-activity");
@@ -88,8 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.ok) {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
-
-        // Refresh activities list to show updated participants
         fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
@@ -97,8 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
       setTimeout(() => {
         messageDiv.classList.add("hidden");
       }, 5000);
@@ -110,7 +106,51 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Handle form submission
+  submissionForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const payload = {
+      name: document.getElementById("new-activity-name").value,
+      description: document.getElementById("new-activity-description").value,
+      schedule: document.getElementById("new-activity-schedule").value,
+      max_participants: document.getElementById("new-activity-max").value,
+      age_range: document.getElementById("new-activity-age").value,
+      venue_name: document.getElementById("new-venue-name").value,
+      venue_address: document.getElementById("new-venue-address").value,
+    };
+
+    try {
+      const response = await fetch("/activities", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        submissionMessageDiv.textContent = `Submitted ${result.name} at ${result.venue.name}.`;
+        submissionMessageDiv.className = "success";
+        submissionForm.reset();
+        fetchActivities();
+      } else {
+        submissionMessageDiv.textContent = result.detail || "Submission failed.";
+        submissionMessageDiv.className = "error";
+      }
+
+      submissionMessageDiv.classList.remove("hidden");
+      setTimeout(() => {
+        submissionMessageDiv.classList.add("hidden");
+      }, 5000);
+    } catch (error) {
+      submissionMessageDiv.textContent = "Failed to submit activity.";
+      submissionMessageDiv.className = "error";
+      submissionMessageDiv.classList.remove("hidden");
+      console.error("Error submitting activity:", error);
+    }
+  });
+
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -133,8 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
-
-        // Refresh activities list to show updated participants
         fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
@@ -142,8 +180,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
       setTimeout(() => {
         messageDiv.classList.add("hidden");
       }, 5000);
@@ -155,6 +191,5 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Initialize app
   fetchActivities();
 });
