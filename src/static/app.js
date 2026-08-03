@@ -4,58 +4,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
-  const map = L.map("map", {
-    zoomControl: true,
-    scrollWheelZoom: true,
-  }).setView([34.0522, -118.2437], 12);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
-
-  const markersByActivity = new Map();
-
-  function focusActivityOnMap(activityName) {
-    const marker = markersByActivity.get(activityName);
-    if (!marker) return;
-
-    const { lat, lng } = marker.options.activityLocation;
-    map.setView([lat, lng], 15, { animate: true });
-    marker.openPopup();
-
-    document.querySelectorAll(".activity-card").forEach((card) => {
-      card.classList.toggle("selected", card.dataset.activity === activityName);
-    });
-  }
-
+  // Function to fetch activities from API
   async function fetchActivities() {
     try {
       const response = await fetch("/activities");
       const activities = await response.json();
 
+      // Clear loading message
       activitiesList.innerHTML = "";
-      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
-      markersByActivity.clear();
-      map.eachLayer((layer) => {
-        if (layer instanceof L.Marker) {
-          map.removeLayer(layer);
-        }
-      });
-
-      const activityEntries = Object.entries(activities);
-
-      activityEntries.forEach(([name, details]) => {
+      // Populate activities list
+      Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
-        activityCard.dataset.activity = name;
 
-        const spotsLeft = details.max_participants - details.participants.length;
-        const location = details.location || {};
-        const locationText = location.name && location.address
-          ? `<p><strong>Location:</strong> ${location.name} — ${location.address}</p>`
-          : "";
+        const spotsLeft =
+          details.max_participants - details.participants.length;
 
+        // Create participants HTML with delete icons instead of bullet points
         const participantsHTML =
           details.participants.length > 0
             ? `<div class="participants-section">
@@ -75,9 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
-          ${locationText}
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-          <button type="button" class="map-focus-btn" data-activity="${name}">View on map</button>
           <div class="participants-container">
             ${participantsHTML}
           </div>
@@ -85,35 +49,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activitiesList.appendChild(activityCard);
 
+        // Add option to select dropdown
         const option = document.createElement("option");
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
-
-        if (location.lat && location.lng) {
-          const marker = L.marker([location.lat, location.lng]).addTo(map);
-          marker.options.activityLocation = { lat: location.lat, lng: location.lng };
-          marker.bindPopup(`<strong>${name}</strong><br>${location.name}<br>${location.address}`);
-          marker.on("click", () => focusActivityOnMap(name));
-          markersByActivity.set(name, marker);
-        }
       });
 
+      // Add event listeners to delete buttons
       document.querySelectorAll(".delete-btn").forEach((button) => {
         button.addEventListener("click", handleUnregister);
       });
-
-      document.querySelectorAll(".map-focus-btn").forEach((button) => {
-        button.addEventListener("click", () => focusActivityOnMap(button.dataset.activity));
-      });
-
-      if (activityEntries.length > 0) {
-        const firstActivity = activityEntries[0][1];
-        if (firstActivity.location) {
-          const firstLocation = firstActivity.location;
-          map.setView([firstLocation.lat, firstLocation.lng], 12);
-        }
-      }
     } catch (error) {
       activitiesList.innerHTML =
         "<p>Failed to load activities. Please try again later.</p>";
@@ -121,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Handle unregister functionality
   async function handleUnregister(event) {
     const button = event.target;
     const activity = button.getAttribute("data-activity");
@@ -141,6 +88,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.ok) {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
+
+        // Refresh activities list to show updated participants
         fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
@@ -149,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       messageDiv.classList.remove("hidden");
 
+      // Hide message after 5 seconds
       setTimeout(() => {
         messageDiv.classList.add("hidden");
       }, 5000);
@@ -160,6 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -182,6 +133,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+
+        // Refresh activities list to show updated participants
         fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
@@ -190,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       messageDiv.classList.remove("hidden");
 
+      // Hide message after 5 seconds
       setTimeout(() => {
         messageDiv.classList.add("hidden");
       }, 5000);
@@ -201,5 +155,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Initialize app
   fetchActivities();
 });
